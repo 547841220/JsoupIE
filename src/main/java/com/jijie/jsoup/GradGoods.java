@@ -15,6 +15,7 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class GradGoods {
 
@@ -29,6 +30,12 @@ public class GradGoods {
         //a-z 对应1-26
         int count = 0;
         while (count < 26) {
+            try {
+                Thread.sleep(60000);
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
             count = gradGoods.getAllUrl(initUrl,count);
         }
 
@@ -83,7 +90,11 @@ public class GradGoods {
     private void handleDrug(String str){
         StringBuilder stringBuilder = new StringBuilder();
         //1.用“-”代替空格,并转小写
-        String replace = str.replace(" ", "-").replace(" / ","-");
+        String replace = str.replace(" / ","-")
+                .replace("/","-")
+                .replace("(","-")
+                .replace(" ", "-").toLowerCase();
+
         //2.添加前缀，拼接url,并返回
         String url = stringBuilder.append(PRE_FIX_URL).append(replace).toString();
         drugInfos.add(url);

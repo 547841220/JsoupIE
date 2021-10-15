@@ -10,7 +10,7 @@ public class StringTest {
             count = handleCount(count);
         }
         StringTest stringTest = new StringTest();
-        System.out.println(stringTest.handleDrug("Amphetamine Salt Combo"));
+        System.out.println(stringTest.handleDrug("Diltiazem ER (Cardizem CD)"));
         //Buprenorphine / Naloxone
     }
 
@@ -21,11 +21,18 @@ public class StringTest {
     }
 
     private String handleDrug(String str){
-        StringBuilder url = new StringBuilder();
+        StringBuilder stringBuilder = new StringBuilder();
         //1.用“-”代替空格,并转小写
-        String replace = str.replace(" ", "-").toLowerCase();
+        String replace = str.replace(" / ","-")
+                .replace("/","-")
+                .replace(" (","-")
+                .replace(" ", "-")
+                .replace(")","").toLowerCase();
+
         //2.添加前缀，拼接url,并返回
-        return url.append(PRE_FIX_URL).append(replace).toString();
+        String url = stringBuilder.append(PRE_FIX_URL).append(replace).toString();
+        //2.添加前缀，拼接url,并返回
+        return url;
 
     }
 }
