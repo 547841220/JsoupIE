@@ -14,6 +14,10 @@ import org.openqa.selenium.ie.InternetExplorerDriver;
 import org.openqa.selenium.interactions.Actions;
 
 import javax.annotation.Resource;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -445,6 +449,8 @@ public class CollectData {
         return currentCount;
     }
 
+    public Document temp;
+
     public int clickFour(int currentCount, WebDriver webDriver) {
         System.out.println("终于进来第四层了，开始采集信息");
         Actions action = new Actions(webDriver);
@@ -475,30 +481,36 @@ public class CollectData {
         System.out.println("采集数据开始！！！！----------------------");
         String detailUrl = webDriver.getCurrentUrl();
         Document priceDoc = Jsoup.parse(webDriver.getPageSource());
-        Actions clickDrugInfo = new Actions(webDriver);
-        WebElement drugInfo = webDriver.findElement(By.cssSelector("li[data-qa='" + DRUG_INFO_BTN + "']"));
-        clickDrugInfo.moveToElement(drugInfo).click().build().perform();
-        try {
-            Thread.sleep(3000);
-        } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        Document drugInfoDoc;
+        if (currentCount == 0) {
+            Actions clickDrugInfo = new Actions(webDriver);
+            WebElement drugInfo = webDriver.findElement(By.cssSelector("li[data-qa='" + DRUG_INFO_BTN + "']"));
+            clickDrugInfo.moveToElement(drugInfo).click().build().perform();
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            temp = Jsoup.parse(webDriver.getPageSource());
+            webDriver.navigate().back();
         }
-        Document drugInfoDoc = Jsoup.parse(webDriver.getPageSource());
+        drugInfoDoc = temp;
+
 
         //采集数据
-        collecDrugInfo(priceDoc,drugInfoDoc,detailUrl);
+        collecDrugInfo(currentCount,priceDoc,drugInfoDoc,detailUrl);
 
         //采集完毕！
         System.out.println("采集完毕！！！");
 
-        webDriver.navigate().back();
+
 
         currentCount = currentCount + 1;
         return currentCount;
     }
 
-    private void collecDrugInfo(Document priceDoc,Document drugInfoDoc,String detailUrl) {
+    private void collecDrugInfo(int currentCount,Document priceDoc,Document drugInfoDoc,String detailUrl) {
         DrugInfo drugInfo = new DrugInfo();
         //链接
         drugInfo.setDetailUrl(detailUrl);
@@ -558,12 +570,16 @@ public class CollectData {
             drugInfo.setMailOrderPrice(mailOrderPrice.text().replace("Prices as low as ", ""));
         }
 
+        if (currentCount == 0) {
+
+        }
+
         //commonBrands,type,pharmacokinetics
         Elements ps = drugInfoDoc.select("p[class='mb-component-1']");
         if (ps != null && ps.size() > 0) {
             String commonBrands = handlePs(ps,1);
             String type = handlePs(ps,2);
-            String pharmacokinetics = handlePs(ps,9);
+            String pharmacokinetics = handlePs(ps,8);
             drugInfo.setCommonBrands(commonBrands);
             drugInfo.setType(type);
             drugInfo.setPharmacokinetics(pharmacokinetics);
@@ -577,9 +593,43 @@ public class CollectData {
         }
 
         //保存到数据库
-        drugInfoMapper.insert(drugInfo);
+        saveDataToDB(drugInfo);
+
 
         drugInfos.add(drugInfo);
+    }
+
+    Connection connection = null;
+
+
+    private void saveDataToDB(DrugInfo drugInfo) {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            String url = "jdbc:mysql://localhost:3306/gbi";
+            String username = "root";
+            String password = "jj789632145";
+            connection = DriverManager.getConnection(url, username, password);
+            Statement statement = connection.createStatement();
+            String sql = " insert into drug_info(`detail_url`,`product_name_raw`,`brand_name`,\n" +
+                    "                              `brand_or_generic`,`formulation`,`specification`,\n" +
+                    "                              `specification_package`,`free_coupons_price`,`saving_clubs_price`,\n" +
+                    "                              `mailOrder_price`,`common_brands`,`type`,`pharmacokinetics`,`indication`)\n" +
+                    "                              values('"+drugInfo.getDetailUrl()+"','"+drugInfo.getProductNameRaw()+"','"+drugInfo.getBrandName()+"',\n" +
+                    "                                     '"+drugInfo.getBrandOrGeneric()+"','"+drugInfo.getFormulation()+"','"+drugInfo.getSpecification()+"',\n" +
+                    "                                     '"+drugInfo.getSpecificationPackage()+"','"+drugInfo.getFreeCouponsPrice()+"','"+drugInfo.getSavingClubsPrice()+"',\n" +
+                    "                                     '"+drugInfo.getMailOrderPrice()+"','"+drugInfo.getCommonBrands()+"','"+drugInfo.getType()+"',\n" +
+                    "                                     '"+drugInfo.getPharmacokinetics()+"','"+drugInfo.getIndication()+"');  " ;
+            statement.execute(sql);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }finally {
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        //drugInfoMapper.insert(drugInfo);
     }
 
     private String handleElements(Elements elements) {
