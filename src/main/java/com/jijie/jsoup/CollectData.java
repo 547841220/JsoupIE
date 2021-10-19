@@ -1,7 +1,6 @@
 package com.jijie.jsoup;
 
 import com.jijie.jsoup.entity.DrugInfo;
-import com.jijie.jsoup.mapper.DrugInfoMapper;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -13,7 +12,6 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.ie.InternetExplorerDriver;
 import org.openqa.selenium.interactions.Actions;
 
-import javax.annotation.Resource;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -23,11 +21,10 @@ import java.util.List;
 
 public class CollectData {
 
-    @Resource
-    private DrugInfoMapper drugInfoMapper;
 
     public static final String PRE_FIX_URL = "https://www.goodrx.com/";
-
+    public Connection connection ;
+    public String PRODUCT_NAME_RAW;
     public List<DrugInfo> drugInfos = new ArrayList<>();
 
     public static final String OPTION_3JFJD = "option-3JfJd";
@@ -113,7 +110,16 @@ public class CollectData {
                         }
                         String quantityAttribute = quantityElement.getAttribute(ARIA_EXPANDED);
                         if (quantityAttribute.equals("false")) {
-                            //开始采集数据
+                            //采集数据开始
+                            System.out.println("采集数据开始！！！！----------------------");
+                            String detailUrl = webDriver.getCurrentUrl();
+                            Document priceDoc = Jsoup.parse(webDriver.getPageSource());
+
+                            //采集数据
+                            collecDrugInfo(currentCount,priceDoc,detailUrl);
+
+                            //采集完毕！
+                            System.out.println("采集完毕！！！");
                         }else {
                             List<WebElement> quantitys = webDriver.findElements(By.className(OPTION_3JFJD));
                             System.out.println(quantitys.size());
@@ -175,6 +181,21 @@ public class CollectData {
                 }
             }
 
+            //更新药品详情
+            Actions clickDrugInfo = new Actions(webDriver);
+            WebElement drugInfoElement = webDriver.findElement(By.cssSelector("li[data-qa='" + DRUG_INFO_BTN + "']"));
+            clickDrugInfo.moveToElement(drugInfoElement).click().build().perform();
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            Document drugInfoDoc = Jsoup.parse(webDriver.getPageSource());
+            collectDrugInfoDoc(drugInfoDoc);
+
+
+            webDriver.quit();
             System.out.println("数据采集完毕！！");
         }
     }
@@ -252,7 +273,16 @@ public class CollectData {
                 }
                 String quantityAttribute = quantityElement.getAttribute(ARIA_EXPANDED);
                 if (quantityAttribute.equals("false")) {
-                    //开始采集数据
+                    //采集数据开始
+                    System.out.println("采集数据开始！！！！----------------------");
+                    String detailUrl = webDriver.getCurrentUrl();
+                    Document priceDoc = Jsoup.parse(webDriver.getPageSource());
+
+                    //采集数据
+                    collecDrugInfo(currentCount,priceDoc,detailUrl);
+
+                    //采集完毕！
+                    System.out.println("采集完毕！！！");
                 }else {
                     List<WebElement> quantitys = webDriver.findElements(By.className(OPTION_3JFJD));
                     System.out.println(quantitys.size());
@@ -354,7 +384,16 @@ public class CollectData {
             }
             String quantityAttribute = quantityElement.getAttribute(ARIA_EXPANDED);
             if (quantityAttribute.equals("false")) {
-                //开始采集数据
+                //采集数据开始
+                System.out.println("采集数据开始！！！！----------------------");
+                String detailUrl = webDriver.getCurrentUrl();
+                Document priceDoc = Jsoup.parse(webDriver.getPageSource());
+
+                //采集数据
+                collecDrugInfo(currentCount,priceDoc,detailUrl);
+
+                //采集完毕！
+                System.out.println("采集完毕！！！");
             }else {
                 List<WebElement> quantitys = webDriver.findElements(By.className(OPTION_3JFJD));
                 System.out.println(quantitys.size());
@@ -428,7 +467,16 @@ public class CollectData {
         }
         String quantityAttribute = quantityElement.getAttribute(ARIA_EXPANDED);
         if (quantityAttribute.equals("false")) {
-            //开始采集数据
+            //采集数据开始
+            System.out.println("采集数据开始！！！！----------------------");
+            String detailUrl = webDriver.getCurrentUrl();
+            Document priceDoc = Jsoup.parse(webDriver.getPageSource());
+
+            //采集数据
+            collecDrugInfo(currentCount,priceDoc,detailUrl);
+
+            //采集完毕！
+            System.out.println("采集完毕！！！");
         }else {
             List<WebElement> quantitys = webDriver.findElements(By.className(OPTION_3JFJD));
             System.out.println(quantitys.size());
@@ -449,7 +497,7 @@ public class CollectData {
         return currentCount;
     }
 
-    public Document temp;
+
 
     public int clickFour(int currentCount, WebDriver webDriver) {
         System.out.println("终于进来第四层了，开始采集信息");
@@ -481,25 +529,9 @@ public class CollectData {
         System.out.println("采集数据开始！！！！----------------------");
         String detailUrl = webDriver.getCurrentUrl();
         Document priceDoc = Jsoup.parse(webDriver.getPageSource());
-        Document drugInfoDoc;
-        if (currentCount == 0) {
-            Actions clickDrugInfo = new Actions(webDriver);
-            WebElement drugInfo = webDriver.findElement(By.cssSelector("li[data-qa='" + DRUG_INFO_BTN + "']"));
-            clickDrugInfo.moveToElement(drugInfo).click().build().perform();
-            try {
-                Thread.sleep(3000);
-            } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-            temp = Jsoup.parse(webDriver.getPageSource());
-            webDriver.navigate().back();
-        }
-        drugInfoDoc = temp;
-
 
         //采集数据
-        collecDrugInfo(currentCount,priceDoc,drugInfoDoc,detailUrl);
+        collecDrugInfo(currentCount,priceDoc,detailUrl);
 
         //采集完毕！
         System.out.println("采集完毕！！！");
@@ -510,7 +542,7 @@ public class CollectData {
         return currentCount;
     }
 
-    private void collecDrugInfo(int currentCount,Document priceDoc,Document drugInfoDoc,String detailUrl) {
+    private void collecDrugInfo(int currentCount,Document priceDoc,String detailUrl) {
         DrugInfo drugInfo = new DrugInfo();
         //链接
         drugInfo.setDetailUrl(detailUrl);
@@ -518,6 +550,7 @@ public class CollectData {
         Elements productNameRaws = priceDoc.select("h1[id='uat-drug-title']>a");
         if (productNameRaws != null && productNameRaws.size() > 0) {
             String productNameRaw = handleElements(productNameRaws);
+            PRODUCT_NAME_RAW = productNameRaw;
             drugInfo.setProductNameRaw(productNameRaw);
         }
 
@@ -574,6 +607,16 @@ public class CollectData {
 
         }
 
+        //保存到数据库
+        saveDataToDB(drugInfo);
+
+
+        drugInfos.add(drugInfo);
+    }
+
+    private void collectDrugInfoDoc(Document drugInfoDoc) {
+        DrugInfo drugInfo = new DrugInfo();
+
         //commonBrands,type,pharmacokinetics
         Elements ps = drugInfoDoc.select("p[class='mb-component-1']");
         if (ps != null && ps.size() > 0) {
@@ -592,14 +635,28 @@ public class CollectData {
             drugInfo.setIndication(indication);
         }
 
-        //保存到数据库
-        saveDataToDB(drugInfo);
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            String url = "jdbc:mysql://localhost:3306/gbi";
+            String username = "root";
+            String password = "jj789632145";
+            connection = DriverManager.getConnection(url, username, password);
+            Statement updateStatement = connection.createStatement();
+            String updateSql = "update drug_info set common_brands = '"+drugInfo.getCommonBrands()+"', " +
+                    "type = '"+drugInfo.getType()+"',pharmacokinetics = '"+drugInfo.getPharmacokinetics()+"', indication = '"+drugInfo.getIndication()+"' " +
+                    "where product_name_raw = '"+PRODUCT_NAME_RAW+"';";
+            updateStatement.executeUpdate(updateSql);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
 
-
-        drugInfos.add(drugInfo);
     }
-
-    Connection connection = null;
 
 
     private void saveDataToDB(DrugInfo drugInfo) {
@@ -629,7 +686,6 @@ public class CollectData {
                 e.printStackTrace();
             }
         }
-        //drugInfoMapper.insert(drugInfo);
     }
 
     private String handleElements(Elements elements) {
