@@ -21,6 +21,10 @@ public class GradGoods {
 
     public List<String> drugInfos = new ArrayList<>();
     public static final String PRE_FIX_URL = "https://www.goodrx.com/";
+    public static final String UAT_ROPDOWN_BRAND = "uat-dropdown-brand";
+    public static final String UAT_DROPDOWN_FORM = "uat-dropdown-form";
+    public static final String UAT_DROPDOWN_DOSAGE = "uat-dropdown-dosage";
+    public static final String UAT_DROPDOWN_QUANTITY = "uat-dropdown-quantity";
 
     public static void main(String[] args) throws IOException {
         GradGoods gradGoods = new GradGoods();
@@ -31,7 +35,7 @@ public class GradGoods {
         int count = 0;
         while (count < 26) {
             try {
-                Thread.sleep(60000);
+                Thread.sleep(30000);
             } catch (InterruptedException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -42,8 +46,11 @@ public class GradGoods {
         for (String drugInfo : gradGoods.drugInfos) {
             System.out.println("所有需要采集的url数量为："+gradGoods.drugInfos.size());
             System.out.println(drugInfo);
+            //todo 采集具体数据 id
+            gradGoods.collectDrugInfo(gradGoods.drugInfos);
         }
-        //getContent(initUrl);
+
+
     }
 
     public int getAllUrl(String initUrl,int i) {
@@ -100,77 +107,115 @@ public class GradGoods {
         drugInfos.add(url);
     }
 
-    public static void getContent(String initUrl) {
-        System.getProperties().setProperty("webdriver.ie.driver","C:\\IEDriverServer_x64_3.14.0\\IEDriverServer.exe");
-
-        WebDriver webDriver = new InternetExplorerDriver();
-        webDriver.get(initUrl);
-        try {
-            Thread.sleep(3000);
-        } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        webDriver.manage().window().maximize();
-        //letterLink-3cdW1 --class
-        List<WebElement> azs = webDriver.findElements(By.className("letterLink-3cdW1"));
-        System.out.println("首字母分类a-z"+azs.size());
-        for (WebElement element : azs) {
-            ((JavascriptExecutor) webDriver).executeScript("arguments[0].scrollIntoView(false);",element);
-            Actions clickElement = new Actions(webDriver);
-            clickElement.moveToElement(element).click().build().perform();
+    private void collectDrugInfo(List<String> drugInfos) {
+        System.out.println("所有需要采集的url数量为："+drugInfos.size());
+        for (String drugInfo : drugInfos) {
+            System.out.println("采集的数据link为："+drugInfo);
+            //
+            System.getProperties().setProperty("webdriver.ie.driver","C:\\IEDriverServer_x64_3.14.0\\IEDriverServer.exe");
+            WebDriver webDriver = new InternetExplorerDriver();
+            webDriver.get(drugInfo);
             try {
                 Thread.sleep(3000);
             } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
+            //uat-dropdown-brand
+            Actions action = new Actions(webDriver);
+            WebElement brandOrGeneric = webDriver.findElement(By.id(UAT_ROPDOWN_BRAND));
+            action.moveToElement(brandOrGeneric).click().build().perform();
+            //获取brand or generic
             WebDriverWait wait = new WebDriverWait(webDriver, 5);
-            List<WebElement> as = wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(By.className("linkContainer-gJwsn")));
-            System.out.println("a分类下，药品数量："+as.size());
-
-            for (int i = 0; i < as.size(); i++) {
-                WebElement drug = as.get(i);
-                WebElement span = drug.findElement(By.tagName("span"));
-                System.out.println(span.getText());
-                //System.out.println(drug.getText());
-                try {
-                    Thread.sleep(5000);
-                } catch (InterruptedException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-                //((JavascriptExecutor) webDriver).executeScript("arguments[0].scrollIntoView(false);",drug);
-                Actions clickDrug = new Actions(webDriver);
-                clickDrug.moveToElement(drug).click(drug).build().perform();
-                try {
-                    Thread.sleep(5000);
-                } catch (InterruptedException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-                Document drugInfo = Jsoup.parse(webDriver.getPageSource());
-                System.out.println("第"+i+"遍打印--------------------------------------");
-                System.out.println(drugInfo);
+            List<WebElement> brandOrGenerics = wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(By.className("option-3JfJd")));
+            //第一层for循环，获取品牌或者generic
+            for (WebElement brand : brandOrGenerics) {
+                //点击第一个
+                action.moveToElement(brand).click().build().perform();
                 try {
                     Thread.sleep(3000);
                 } catch (InterruptedException e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
-                webDriver.navigate().back();
+
+                WebElement collecFlag = webDriver.findElement(By.cssSelector("div[data-qa='discontinued_drug_ctn']"));
+                if (collecFlag != null) {
+                    continue;
+                }
+
+                WebElement form = webDriver.findElement(By.id(UAT_DROPDOWN_FORM));
+                action.moveToElement(form).click().build().perform();
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+                WebElement formFlag = webDriver.findElement(By.cssSelector("div[id='uat-dropdown-container-form']"));
+                String formAttribute = formFlag.getAttribute("aria-expanded");
+
+                if ("true".equals(formAttribute)){
+                    //form_options_ctn
+                    List<WebElement> forms = webDriver.findElements(By.className("option-3JfJd"));
+                    //第二层for循环
+                    for (WebElement webElement : forms) {
+                        //点击第一个
+                        action.moveToElement(webElement).click().build().perform();
+                        try {
+                            Thread.sleep(3000);
+                        } catch (InterruptedException e) {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+                        }
+
+                        WebElement dosage = webDriver.findElement(By.id(UAT_DROPDOWN_DOSAGE));
+                        action.moveToElement(dosage).click().build().perform();
+                        try {
+                            Thread.sleep(3000);
+                        } catch (InterruptedException e) {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+                        }
+                        WebElement dosageFlag = webDriver.findElement(By.cssSelector("div[id='uat-dropdown-container-dosage']"));
+                        String dosageAttribute = dosageFlag.getAttribute("aria-expanded");
+                        if (dosageAttribute.equals("true")) {
+                            List<WebElement> dosages = webDriver.findElements(By.className("option-3JfJd"));
+                            //第三层for循环
+                            for (WebElement dosageElement : dosages) {
+                                //点击第一个
+                                action.moveToElement(webElement).click().build().perform();
+                                try {
+                                    Thread.sleep(3000);
+                                } catch (InterruptedException e) {
+                                    // TODO Auto-generated catch block
+                                    e.printStackTrace();
+                                }
+                                WebElement quantity = webDriver.findElement(By.id(UAT_DROPDOWN_QUANTITY));
+                                action.moveToElement(quantity).click().build().perform();
+                                try {
+                                    Thread.sleep(3000);
+                                } catch (InterruptedException e) {
+                                    // TODO Auto-generated catch block
+                                    e.printStackTrace();
+                                }
+                                WebElement quantityFlag = webDriver.findElement(By.cssSelector("div[id='uat-dropdown-container-quantity']"));
+                                String quantityAttribute = quantityFlag.getAttribute("aria-expanded");
+                                if (quantityAttribute.equals("true")) {
+                                    List<WebElement> quantitys = webDriver.findElements(By.className("option-3JfJd"));
+                                    //第四层for循环
+                                    for (WebElement quantityElement : quantitys) {
+                                        //点击第一个
+                                        action.moveToElement(webElement).click().build().perform();
+                                        //采集页面数据
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
-            System.out.println("打印完毕！");
-
-            /*WebDriverWait wait2 = new WebDriverWait(webDriver, 5);
-            List<WebElement> as2 = wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(By.className("linkContainer-gJwsn")));
-            if (as2 !=null && as2.size() >0) {
-                webDriver.navigate().back();
-            }*/
-            //link-1SEOS linkDesktop-13xNI --class
-
-            //返回上一界面
-            //webDriver.navigate().back();
-
         }
     }
+
 }

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jijie.jsoup.mapper.DrugInfoMapper">
+
+    <resultMap id="BaseResultMap" type="com.jijie.jsoup.entity.DrugInfo">
+        <id column="id" jdbcType="INT" property="id"/>
+        <id column="detail_url" jdbcType="VARCHAR" property="detailUrl"/>
+        <id column="product_name_raw" jdbcType="VARCHAR" property="productNameRaw"/>
+        <id column="brand_name" jdbcType="VARCHAR" property="brandName"/>
+        <id column="brand_or_generic" jdbcType="VARCHAR" property="brandOrGeneric"/>
+        <id column="formulation" jdbcType="VARCHAR" property="formulation"/>
+        <id column="specification" jdbcType="VARCHAR" property="specification"/>
+        <id column="specification_package" jdbcType="VARCHAR" property="specificationPackage"/>
+        <id column="free_coupons_price" jdbcType="VARCHAR" property="freeCouponsPrice"/>
+        <id column="saving_clubs_price" jdbcType="VARCHAR" property="savingClubsPrice"/>
+        <id column="mailOrder_price" jdbcType="VARCHAR" property="mailOrderPrice"/>
+        <id column="common_brands" jdbcType="VARCHAR" property="commonBrands"/>
+        <id column="type" jdbcType="VARCHAR" property="type"/>
+        <id column="pharmacokinetics" jdbcType="VARCHAR" property="pharmacokinetics"/>
+        <id column="indication" jdbcType="VARCHAR" property="indication"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.jijie.jsoup.entity.DrugInfo" useGeneratedKeys="true" keyProperty="id">
+        insert into drug_info(detail_url,product_name_raw,brand_name,
+                              brand_or_generic,formulation,specification,
+                              specification_package,free_coupons_price,saving_clubs_price,
+                              mailOrder_price,common_brands,type,pharmacokinetics,indication)
+                              values(#{detailUrl},#{productNameRaw},#{brandName},
+                                     #{brandOrGeneric},#{formulation},#{specification},
+                                     #{specificationPackage},#{freeCouponsPrice},#{savingClubsPrice},
+                                     #{mailOrderPrice},#{commonBrands},#{type},
+                                     #{pharmacokinetics},#{indication});
+    </insert>
+</mapper>
