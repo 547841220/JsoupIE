@@ -22,7 +22,6 @@ import java.util.List;
 public class CollectData {
 
 
-    public static final String PRE_FIX_URL = "https://www.goodrx.com/";
     public Connection connection ;
     public String PRODUCT_NAME_RAW;
     public List<DrugInfo> drugInfos = new ArrayList<>();
@@ -35,19 +34,10 @@ public class CollectData {
     public static final String UAT_DROPDOWN_CONTAINER_DOSAGE = "uat-dropdown-container-dosage";
     public static final String UAT_DROPDOWN_CONTAINER_QUANTITY = "uat-dropdown-container-quantity";
     public static final String DRUG_INFO_BTN = "drug_info_btn";
-    public static final String BASICS = "basics";
-    public static final String USES = "uses";
 
-    public static void main(String[] args) {
-        CollectData co = new CollectData();
-        co.collecData();
-    }
-
-    public void collecData() {
+    public void collecData(List<String> drugInfos) {
         int currentCount = 0;
 
-        List<String> drugInfos = new ArrayList<>();
-        drugInfos.add("https://www.goodrx.com/alprazolam");
         System.out.println("所有需要采集的url数量为：" + drugInfos.size());
         for (String drugInfo : drugInfos) {
             System.out.println("采集的数据link为：" + drugInfo);
