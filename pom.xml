@@ -66,6 +66,32 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>com.gbdata</groupId>
+            <artifactId>gbdata-common-json</artifactId>
+            <version>3.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.gbdata</groupId>
+            <artifactId>gbdata-common-mongo</artifactId>
+            <version>3.0-SNAPSHOT</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.13</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/com.alibaba/fastjson -->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+            <version>1.2.75</version>
+        </dependency>
+
 
 
 
@@ -91,7 +117,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.jijie.jsoup.GradGoods</mainClass>
+                            <mainClass>com.jijie.jsoup.GrabGoodsStepTwo</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

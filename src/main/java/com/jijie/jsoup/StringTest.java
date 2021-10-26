@@ -5,12 +5,17 @@ public class StringTest {
 
     public static void main(String[] args) {
 
-        int count = 0;
+        String detailUrl = "https://www.goodrx.com/amphetamine-salt-combo?dosage=20mg&form=tablet&label_override=amphetamine%20salt%20combo&quantity=45&sort_type=popularity";
+        String mongoId = detailUrl.replace("https://www.goodrx.com/","")
+                .replace("&sort_type=popularity","").replace("?","/").replace("&","/");
+        System.out.println(mongoId);
+
+        /*int count = 0;
         while(count < 26) {
             count = handleCount(count);
         }
         StringTest stringTest = new StringTest();
-        System.out.println(stringTest.handleDrug("Diltiazem ER (Cardizem CD)"));
+        System.out.println(stringTest.handleDrug("Diltiazem ER (Cardizem CD)"));*/
         //Buprenorphine / Naloxone
     }
 

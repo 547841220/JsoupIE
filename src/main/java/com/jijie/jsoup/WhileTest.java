@@ -1,6 +1,16 @@
 package com.jijie.jsoup;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class WhileTest {
+
+    public static void main(String[] args) {
+        List<String> list = new ArrayList<>();
+        list.add("a");
+        list.add("a");
+        System.out.println(list.size());
+    }
 
     /*public static void main(String[] args) {
         int count = 0;
