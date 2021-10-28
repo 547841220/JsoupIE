@@ -1,6 +1,5 @@
 package com.jijie.jsoup;
 
-import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.*;
 import org.openqa.selenium.ie.InternetExplorerDriver;
 import org.openqa.selenium.interactions.Actions;
@@ -8,18 +7,21 @@ import org.openqa.selenium.interactions.Actions;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class GrabGoodsStepOne {
 
     public static Map<Integer,String> a_z = new HashMap<>(26);
     public static final String PRE_FIX_URL = "https://www.goodrx.com/";
     public static final String FILE_PATH = "C:\\jijie\\jijie.txt";
-    public static Set<Map<String,String>> drugs = new HashSet<>();
+    public static List<Map<String,String>> drugs = new ArrayList<>();
 
     public static void main(String[] args) throws IOException {
         GrabGoodsStepOne one = new GrabGoodsStepOne();
-        Set<Map<String,String>> maps = one.collectDrugs();
+        one.collectDrugs();
         File file = new File(FILE_PATH);
         FileWriter fwriter = null;
         if (!file.exists()) {
@@ -29,10 +31,10 @@ public class GrabGoodsStepOne {
         try {
             // true表示不覆盖原来的内容，而是加到文件的后面。若要覆盖原来的内容，直接省略这个参数就好
             fwriter = new FileWriter(FILE_PATH);
-            for (Map<String, String> map : maps) {
-                fwriter.write(map.get("url"));
+            for (Map<String, String> drug : drugs) {
+                fwriter.write(drug.get("url"));
                 fwriter.write("#");
-                fwriter.write(map.get("passFlag"));
+                fwriter.write(drug.get("passFlag"));
                 fwriter.write(";");
                 fwriter.write("\n");
             }
@@ -48,20 +50,19 @@ public class GrabGoodsStepOne {
         }
     }
 
-    public Set<Map<String,String>> collectDrugs() {
+    public void collectDrugs() {
         String initUrl = "https://www.goodrx.com/drugs";
         int countOne = 0;
-        while(countOne < 2) {
+        while(countOne < 26) {
             if (countOne > 0) {
                 NmpaGrabberUtil.sleep(10);
             }
-            countOne = getAllUrl(initUrl,countOne,drugs);
+            countOne = getAllUrl(initUrl,countOne);
         }
         System.out.println("所有需要采集的url数量为："+drugs.size());
-        return drugs;
     }
 
-    public int getAllUrl(String initUrl,int count,Set<Map<String,String>> drugs) {
+    public int getAllUrl(String initUrl,int count) {
         System.getProperties().setProperty("webdriver.ie.driver","C:\\IEDriverServer_x64_3.14.0\\IEDriverServer.exe");
         WebDriver webDriver = new InternetExplorerDriver();
 
@@ -113,7 +114,7 @@ public class GrabGoodsStepOne {
                         return count;
                     }*/
                     //对字符串做处理
-                    handleDrug(text,drugs);
+                    handleDrug(text);
                 }catch (StaleElementReferenceException e){
                     webDriver.quit();
                     return count;
@@ -128,7 +129,7 @@ public class GrabGoodsStepOne {
         }
     }
 
-    private void handleDrug(String str,Set<Map<String,String>> drugs){
+    private void handleDrug(String str){
         StringBuilder stringBuilder = new StringBuilder();
         Map<String,String> map = new HashMap<>();
         //1.用“-”代替空格,并转小写

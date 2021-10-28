@@ -4,31 +4,24 @@ import com.gbdata.common.mongo.Entity;
 import com.gbdata.common.mongo.MongoEntityClient;
 import com.gbdata.common.util.Email;
 import com.gbdata.json.JSONObject;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import org.openqa.selenium.By;
-import org.openqa.selenium.NoSuchElementException;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
+import org.openqa.selenium.*;
 import org.openqa.selenium.ie.InternetExplorerDriver;
 import org.openqa.selenium.interactions.Actions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-@Slf4j
 public class GrabGoodsStepTwo {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GrabGoodsStepTwo.class);
@@ -37,7 +30,7 @@ public class GrabGoodsStepTwo {
     public static JSONObject jsonObjectTemp = new JSONObject();
     private static final String GRAB_GOOD_RX_INFO = "GrabGoodRxInfo";
     private MongoEntityClient dbSource =  new MongoEntityClient("SOURCE");
-    public static final String JIE_JI = "jie.ji@generalbiologic.com";
+    public static final String JIE_JI = "cgao@generalbiologic.com";
     public static final String OPTION_3JFJD = "option-3JfJd";
     public static final int ERROR_CODE_TIMEOUT = 99999;
     public static final String ERROR_CODE_TIMEOUT_MSG = "程序超时！";
@@ -52,17 +45,33 @@ public class GrabGoodsStepTwo {
 
     public static final String FILE_PATH = "C:\\jijie\\jijie.txt";
     public static List<String> drugInfos = new ArrayList<>();
+    public static int try_count = 0;
+    public static int error_count = 0;
+    public static final int error_code = 99999;
+    public static final String SUCCESS_SUBJECT = "采集成功！";
+    public static final String FAIL_SUBJECT = "数据采集过程报错！";
+
 
     public static void main(String[] args) {
         GrabGoodsStepTwo two = new GrabGoodsStepTwo();
         int count = 0;
+        boolean grabFinshFlag = two.checkGrabFinsh();
+        if (grabFinshFlag) {
+            return;
+        }
         while(count < drugInfos.size()) {
             //前置步骤，需要检查文件中的数据是否全部采集完毕，全部采集完毕则程序终止
-            boolean grabFinshFlag = two.checkGrabFinsh();
+            grabFinshFlag = two.checkGrabFinsh();
             if (grabFinshFlag) {
                 return;
             }
             count = two.collecData(drugInfos, count);
+        }
+        if (count == error_code){
+            //程序报错，需人工干预。本次采集终止
+            System.exit(0);
+            return;
+
         }
         System.out.println("采集完毕！共采集数据："+drugInfos.size()+"条");
     }
@@ -86,7 +95,7 @@ public class GrabGoodsStepTwo {
             }
             return true;
         } catch (IOException e) {
-            sendEmail("文件不存在！");
+            sendEmail("文件不存在！",FAIL_SUBJECT);
             throw new RuntimeException("文件不存在！");
         }
     }
@@ -94,7 +103,7 @@ public class GrabGoodsStepTwo {
     public int collecData(List<String> drugInfos,int count) {
         int currentCount = 0;
         System.out.println("所有需要采集的url数量为：" + drugInfos.size());
-        String currentUrl = drugInfos.get(count);
+        String currentUrl = drugInfos.get(currentCount);
 
         System.out.println("采集的数据link为：" + currentUrl);
         System.getProperties().setProperty("webdriver.ie.driver", "C:\\IEDriverServer_x64_3.14.0\\IEDriverServer.exe");
@@ -102,8 +111,7 @@ public class GrabGoodsStepTwo {
 
         try{
             webDriver.get(currentUrl);
-            int tempCount = 0;
-            check(webDriver,tempCount);
+            check(webDriver);
             NmpaGrabberUtil.sleep(10);
             webDriver.manage().window().maximize();
             NmpaGrabberUtil.sleep(3);
@@ -208,19 +216,34 @@ public class GrabGoodsStepTwo {
             //文件更新！
             boolean updateFlag = updateFile(currentUrl);
             if (!updateFlag){
-                sendEmail("更新文件失败！！");
+                sendEmail("更新文件失败！！",FAIL_SUBJECT);
             }
+            checkGrabFinsh();
             count = count + 1;
+            sendEmail(currentUrl+"采集完毕！",SUCCESS_SUBJECT);
             return count;
         }catch (Exception e) {
             //验证
-            int cou = 0;
-            check(webDriver,cou);
+            boolean error = errorCheck();
+            if (error) {
+                webDriver.quit();
+                LOGGER.info("数据采集过程中出错，出错次数达到5次，需人工干预！");
+                sendEmail("数据采集过程中出错，出错次数达到5次，需人工干预！",FAIL_SUBJECT);
+                return error_code;
+            }
             webDriver.quit();
             LOGGER.info("数据采集过程中出错，重新采集");
             System.out.println("数据采集过程中出错，重新采集");
             return count;
         }
+    }
+
+    public boolean errorCheck() {
+        if (error_count > 5) {
+            return true;
+        }
+        error_count = error_count + 1;
+        return false;
     }
 
     public boolean updateFile(String currentUrl) {
@@ -230,12 +253,13 @@ public class GrabGoodsStepTwo {
             String oldStr = currentUrl + "#false";
             String newStr = currentUrl + "#true";
             if (content.contains(oldStr)){
-                content.replace(oldStr,newStr);
+                String replace = content.replace(oldStr, newStr);
+                // true表示不覆盖原来的内容，而是加到文件的后面。若要覆盖原来的内容，直接省略这个参数就好
+                fwriter = new FileWriter(FILE_PATH);
+                fwriter.write(replace);
+                return true;
             }
-            // true表示不覆盖原来的内容，而是加到文件的后面。若要覆盖原来的内容，直接省略这个参数就好
-            fwriter = new FileWriter(FILE_PATH);
-            fwriter.write(content);
-            return true;
+            return false;
         } catch (IOException ex) {
             ex.printStackTrace();
             return false;
@@ -249,9 +273,9 @@ public class GrabGoodsStepTwo {
         }
     }
 
-    public void check(WebDriver webDriver,int count) {
-        if (count > 5) {
-            sendEmail(ERROR_CODE_TIMEOUT_MSG);
+    public void check(WebDriver webDriver) {
+        if (try_count > 5) {
+            sendEmail(ERROR_CODE_TIMEOUT_MSG,FAIL_SUBJECT);
             //需要手工干预！
         }
         try{
@@ -265,19 +289,19 @@ public class GrabGoodsStepTwo {
             NmpaGrabberUtil.sleep(5);
             WebElement try_again = human.findElement(By.id("px-captcha"));
             if (try_again != null) {
-                count = count + 1;
+                try_count = try_count + 1;
                 //说明需要重试
-                check(webDriver,count);
+                check(webDriver);
             }
         }catch (NoSuchElementException e){
             System.out.println("程序运行正常！");
         }
     }
 
-    public void sendEmail(String errMsg) {
+    public void sendEmail(String errMsg,String subject) {
         Email email = new Email();
         email.to.add(JIE_JI);
-        email.subject = "数据采集过程报错！";
+        email.subject = subject;
         email.text = errMsg;
         email.send();
     }
@@ -295,6 +319,8 @@ public class GrabGoodsStepTwo {
         List<WebElement> brands = webDriver.findElements(By.className("option-3JfJd"));
         System.out.println(brands.size());
         WebElement brand = brands.get(currentCount);
+        ((JavascriptExecutor) webDriver).executeScript("arguments[0].scrollIntoView(false);",brand);
+        NmpaGrabberUtil.sleep(2);
         action.moveToElement(brand).click().build().perform();
         NmpaGrabberUtil.sleep(3);
         try{
@@ -389,6 +415,8 @@ public class GrabGoodsStepTwo {
         List<WebElement> forms = webDriver.findElements(By.className("option-3JfJd"));
         System.out.println(forms.size());
         WebElement form = forms.get(currentCount);
+        ((JavascriptExecutor) webDriver).executeScript("arguments[0].scrollIntoView(false);",form);
+        NmpaGrabberUtil.sleep(2);
         action.moveToElement(form).click().build().perform();
         NmpaGrabberUtil.sleep(3);
 
@@ -454,6 +482,8 @@ public class GrabGoodsStepTwo {
         List<WebElement> dosages = webDriver.findElements(By.className(OPTION_3JFJD));
         System.out.println(dosages.size());
         WebElement dosage = dosages.get(currentCount);
+        ((JavascriptExecutor) webDriver).executeScript("arguments[0].scrollIntoView(false);",dosage);
+        NmpaGrabberUtil.sleep(2);
         action.moveToElement(dosage).click().build().perform();
         NmpaGrabberUtil.sleep(3);
 
@@ -507,14 +537,9 @@ public class GrabGoodsStepTwo {
             action.moveToElement(quantityElement).click().build().perform();
             NmpaGrabberUtil.sleep(2);
         }
-
-        //真正点击quantity
-        List<WebElement> quantitys = webDriver.findElements(By.className(OPTION_3JFJD));
-        System.out.println(quantitys.size());
-        try{
-            WebElement quantity = quantitys.get(currentCount);
-            action.moveToElement(quantity).click().build().perform();
-            NmpaGrabberUtil.sleep(3);
+        WebElement quantity = webDriver.findElement(By.id(UAT_DROPDOWN_CONTAINER_QUANTITY));
+        String quantityAttribute = quantity.getAttribute(ARIA_EXPANDED);
+        if (quantityAttribute.equals("false")) {
             //采集数据开始
             System.out.println("采集数据开始！！！！----------------------");
             String detailUrl = webDriver.getCurrentUrl();
@@ -525,24 +550,48 @@ public class GrabGoodsStepTwo {
 
             //采集完毕！
             System.out.println("采集完毕！！！");
+        } else {
+            //真正点击quantity
+            List<WebElement> quantitys = webDriver.findElements(By.className(OPTION_3JFJD));
+            System.out.println(quantitys.size());
+            try{
+                WebElement quantityE = quantitys.get(currentCount);
+                ((JavascriptExecutor) webDriver).executeScript("arguments[0].scrollIntoView(false);",quantityE);
+                NmpaGrabberUtil.sleep(2);
+                action.moveToElement(quantityE).click().build().perform();
+                NmpaGrabberUtil.sleep(3);
+                //采集数据开始
+                System.out.println("采集数据开始！！！！----------------------");
+                String detailUrl = webDriver.getCurrentUrl();
+                Document priceDoc = Jsoup.parse(webDriver.getPageSource());
 
-            currentCount = currentCount + 1;
-            return currentCount;
-        }catch (IndexOutOfBoundsException e){
-            LOGGER.info("循环出错！停止本次循环，出错信息：");
-            LOGGER.info("brand:{}",brand.getText());
-            LOGGER.info("form:{}",form.getText());
-            LOGGER.info("dosage:{}",dosage.getText());
-            LOGGER.info("quantity:{}",qq.getText());
+                //采集数据
+                collecDrugInfo(currentCount,priceDoc,detailUrl);
 
-            System.out.println("brand："+brand.getText());
+                //采集完毕！
+                System.out.println("采集完毕！！！");
 
-            WebElement element = webDriver.findElement(By.cssSelector("div[data-qa='coupons_tab_subtitle']"));
-            Actions clickFreeCoupons = new Actions(webDriver);
-            clickFreeCoupons.moveToElement(element).click().build().perform();
+                currentCount = currentCount + 1;
+                return currentCount;
+            }catch (IndexOutOfBoundsException e){
+                LOGGER.info("循环出错！停止本次循环，出错信息：");
+                LOGGER.info("brand:{}",brand.getText());
+                LOGGER.info("form:{}",form.getText());
+                LOGGER.info("dosage:{}",dosage.getText());
+                LOGGER.info("quantity:{}",qq.getText());
 
-            return currentCount;
+                System.out.println("brand："+brand.getText());
+
+                WebElement element = webDriver.findElement(By.cssSelector("div[data-qa='coupons_tab_subtitle']"));
+                Actions clickFreeCoupons = new Actions(webDriver);
+                clickFreeCoupons.moveToElement(element).click().build().perform();
+
+                return currentCount;
+            }
         }
+
+        currentCount = currentCount + 1;
+        return currentCount;
     }
 
 
